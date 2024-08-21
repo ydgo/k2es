@@ -1,0 +1,34 @@
+kafka:
+  brokers:
+    - localhost:9092
+  topics:
+    - k2es-data
+  group_id: k2es
+  client_id: k2es
+  consumer_threads: 8
+  # ------------ reader settings
+  # 10MB
+  min_bytes: 5000000
+  # 50MB
+  max_bytes: 6000000
+  max_wait: 10s
+  queue_capacity: 5000
+  commit_interval: 1s
+  watch_partition_changes: true
+  # LastOffset  int64 = -1 // The most recent offset available for a partition.
+  # FirstOffset int64 = -2 // The least recent offset available for a partition.
+  start_offset: -2
+
+es:
+  hosts:
+    - http://localhost:9200
+  workers: 8
+  flush_interval: 10s
+  timeout: 9s
+  # 10 MB
+  flush_bytes: 7000000
+  indices: ["dsm-*"]
+  max_idle_count: 5
+  sync_index_interval: 30s
+
+

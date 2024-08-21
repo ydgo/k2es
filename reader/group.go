@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/segmentio/kafka-go"
+	"github.com/ydgo/k2es/handler"
 	"log"
 	"sync"
 	"time"
@@ -40,7 +41,6 @@ func NewGroup(ctx context.Context, config GroupConfig) *Group {
 			}
 		}(c)
 	}
-	group.wg.Add(1)
 	return group
 }
 
@@ -54,15 +54,14 @@ type GroupConfig struct {
 	MinBytes               int           // Default: 1B
 	MaxBytes               int           // Default: 1MB
 	MaxWait                time.Duration // Default: 10s
-	ReadLagInterval        time.Duration
+	ReadBatchTimeout       time.Duration // 10s
 	CommitInterval         time.Duration // Default: 0
 	PartitionWatchInterval time.Duration // Default: 5s
 	WatchPartitionChanges  bool
 	StartOffset            int64 // Default: FirstOffset
 	Logger                 kafka.Logger
 	ErrorLogger            kafka.Logger
-	MaxAttempts            int  // Default: 3
-	HandleDuration         bool // collect handle total duration
+	Handler                handler.Handle
 }
 
 // Stop all consumer
@@ -70,23 +69,28 @@ func (g *Group) Stop() {
 	g.wg.Wait()
 }
 
-type GroupStats struct {
-	TotalLag      int64
-	TotalMessages int64
-	TotalErrors   int64
-	TotalBytes    int64
-	ReBalances    int64
+func (g *Group) Stats() Stats {
+	readers := make([]kafka.ReaderStats, 0)
+	for _, c := range g.consumers {
+		readers = append(readers, c.reader.Stats())
+	}
+	return Stats{
+		Readers: readers,
+	}
+}
+func (g *Group) StatsByClientID(id string) kafka.ReaderStats {
+	for _, c := range g.consumers {
+		if c.ID() == id {
+			return c.reader.Stats()
+		}
+	}
+	return kafka.ReaderStats{}
 }
 
-func (g *Group) Stats() GroupStats {
-	stats := GroupStats{}
+func (g *Group) Clients() []string {
+	clients := make([]string, 0)
 	for _, c := range g.consumers {
-		stat := c.reader.Stats()
-		stats.TotalMessages += stat.Messages
-		stats.TotalErrors += stat.Errors
-		stats.TotalBytes += stat.Bytes
-		stats.ReBalances += stat.Rebalances
+		clients = append(clients, c.ID())
 	}
-	return stats
-
+	return clients
 }
