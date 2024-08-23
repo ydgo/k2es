@@ -1,3 +1,4 @@
 .idea
 data/elasticsearch-data
 data/kafka
+data/prometheus/data/

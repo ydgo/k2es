@@ -10,26 +10,29 @@ import (
 	"log"
 )
 
-func BlukIndex(indexer *writer.IndexerMgmt) Handle {
-	return func(ctx context.Context, msg kafka.Message) error {
-		blukIndexer := indexer.GetIndex(data.TestIndex)
-		item := esutil.BulkIndexerItem{
-			Index:  data.TestIndex,
-			Action: "index",
-			Body:   bytes.NewReader(msg.Value),
-			OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
-				if err != nil {
-					log.Println("Indexed fail: ", err)
-				} else {
-					if res.Error.Type != "" {
-						log.Printf("%s:%s", res.Error.Type, res.Error.Reason)
-					} else {
-						log.Printf("%s/%s %s (%d)", res.Index, res.DocumentID, res.Result, res.Status)
-					}
+type batchWrite struct {
+	mgmt *writer.IndexerMgmt
+}
 
-				}
-			},
-		}
-		return blukIndexer.Add(ctx, item)
+func NewBatchWrite(mgmt *writer.IndexerMgmt) Handler {
+	return &batchWrite{mgmt: mgmt}
+}
+
+func (b *batchWrite) Handle(ctx context.Context, msg kafka.Message) error {
+	indexer := b.mgmt.GetIndex(data.TestIndex)
+	item := esutil.BulkIndexerItem{
+		Index:     data.TestIndex,
+		Action:    "index",
+		Body:      bytes.NewReader(msg.Value),
+		OnFailure: b.onFail,
+	}
+	return indexer.Add(ctx, item)
+}
+
+func (b *batchWrite) onFail(_ context.Context, _ esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
+	if err != nil {
+		log.Println("indexed: ", err)
+	} else if res.Error.Type != "" {
+		log.Printf("indexed %s:%s", res.Error.Type, res.Error.Reason)
 	}
 }

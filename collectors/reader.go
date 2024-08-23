@@ -186,3 +186,31 @@ func (c *consumerStatCollector) Describe(ch chan<- *prometheus.Desc) {
 	//ch <- c.fetchSizeMax
 	//ch <- c.fetchSizeSum
 }
+
+type counterByes struct {
+	group   *consumer.Group
+	counter prometheus.Counter
+}
+
+func NewCounter(group *consumer.Group) prometheus.Collector {
+	t := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "k2es",
+		Subsystem: "reader",
+		Name:      "bytes_total",
+		Help:      "The total number of bytes read",
+	})
+	return &counterByes{counter: t, group: group}
+}
+
+func (c *counterByes) Describe(ch chan<- *prometheus.Desc) {
+	ch <- c.counter.Desc()
+}
+
+func (c *counterByes) Collect(ch chan<- prometheus.Metric) {
+	clients := c.group.Clients()
+	for _, client := range clients {
+		stats := c.group.StatsByClientID(client)
+		c.counter.Add(float64(stats.Bytes))
+	}
+	ch <- c.counter
+}

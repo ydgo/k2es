@@ -16,9 +16,13 @@ type consumer struct {
 }
 
 func newConsumer(groupConfig GroupConfig, clientID string) *consumer {
+	handle := groupConfig.Handler
+	if handle == nil {
+		handle = handler.DropHandler()
+	}
 	return &consumer{
 		id:      clientID,
-		handler: handler.NewDefaultHandler(groupConfig.Handler),
+		handler: handle,
 		reader: kafka.NewReader(kafka.ReaderConfig{
 			Brokers:                groupConfig.Brokers,
 			GroupID:                groupConfig.GroupID,

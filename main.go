@@ -26,14 +26,11 @@ var (
 
 func main() {
 	flag.Parse()
-	log.Printf("config loading...")
-	// load config
 	cfg, err := config.Load(*configFile)
 	if err != nil {
 		log.Printf("load config file failed: %s\n", err)
 		return
 	}
-	log.Printf("config loaded")
 	// create elasticsearch client
 	es, err := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses:           cfg.ES.Hosts,
@@ -44,9 +41,6 @@ func main() {
 		log.Printf("create elasticsearch client failed: %s", err)
 		return
 	}
-
-	// 创建测试索引和一条测试数据
-	//data.CreateIndex(es)
 
 	// elasticsearch multi indexer management
 	indexerMgmt := writer.NewIndexerMgmt(ctx, writer.Config{
@@ -76,7 +70,7 @@ func main() {
 		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
 			log.Printf(s, i...)
 		}),
-		Handler: handler.BlukIndex(indexerMgmt),
+		Handler: handler.NewBatchWrite(indexerMgmt),
 	}
 
 	if cfg.Kafka.EnableLogger {
@@ -95,10 +89,13 @@ func main() {
 
 	// register prometheus collector
 	reg := prometheus.NewRegistry()
-	for _, client := range consumerGroup.Clients() {
-		exporter := collectors.NewConsumerCollector(consumerGroup, client)
-		reg.MustRegister(exporter)
-	}
+	//for _, client := range consumerGroup.Clients() {
+	//	exporter := collectors.NewConsumerCollector(consumerGroup, client)
+	//	reg.MustRegister(exporter)
+	//}
+
+	reg.MustRegister(collectors.NewCounter(consumerGroup))
+
 	go func() {
 		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 		_ = http.ListenAndServe(":8080", nil)

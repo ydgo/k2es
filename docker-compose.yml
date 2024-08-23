@@ -7,6 +7,13 @@ services:
     environment:
       - xpack.security.enabled=false
       - discovery.type=single-node
+#      - ES_JAVA_OPTS="-Xms 6G -Xmx 6G"
+      - ES_JAVA_OPTS=-Xms3g -Xmx3g
+    deploy:
+      resources:
+        limits:
+          cpus: "0.70"
+          memory: 4G
     ulimits:
       memlock:
         soft: -1
@@ -30,3 +37,18 @@ services:
       - 5601:5601
     depends_on:
       - elasticsearch                                   # kibana will start when elasticsearch has started
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - 9090:9090
+    volumes:
+      - ./data/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+
+
+volumes:
+  prometheus_data: {}

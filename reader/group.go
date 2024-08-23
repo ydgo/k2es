@@ -61,7 +61,7 @@ type GroupConfig struct {
 	StartOffset            int64 // Default: FirstOffset
 	Logger                 kafka.Logger
 	ErrorLogger            kafka.Logger
-	Handler                handler.Handle
+	Handler                handler.Handler
 }
 
 // Stop all consumer

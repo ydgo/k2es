@@ -22,11 +22,11 @@ kafka:
 es:
   hosts:
     - http://localhost:9200
-  workers: 8
+  workers: 16
   flush_interval: 10s
   timeout: 9s
   # 10 MB
-  flush_bytes: 7000000
+  flush_bytes: 5000000
   indices: ["dsm-*"]
   max_idle_count: 5
   sync_index_interval: 30s
