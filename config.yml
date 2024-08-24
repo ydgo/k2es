@@ -26,7 +26,7 @@ es:
   flush_interval: 10s
   timeout: 9s
   # 5 MB
-  flush_bytes: 15000000
+  flush_bytes: 10000000
   max_idle_count: 3
   idle_interval: 5s
 

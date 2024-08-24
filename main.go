@@ -51,8 +51,18 @@ func main() {
 		MaxIdleCount:  cfg.ES.MaxIdleCount,
 		IdleInterval:  cfg.ES.IdleInterval,
 	})
+	blukIndexer := indexer.NewIndexer(indexer.BlukConfig{
+		Client:        es,
+		Workers:       cfg.ES.Workers,
+		FlushInterval: cfg.ES.FlushInterval,
+		Timeout:       cfg.ES.Timeout,
+		FlushBytes:    cfg.ES.FlushBytes,
+		MaxIdleCount:  cfg.ES.MaxIdleCount,
+		IdleInterval:  cfg.ES.IdleInterval,
+	})
 	groupConfig := group.Config{
 		Indexer:                mgmt,
+		BlukIndexer:            blukIndexer,
 		Consumers:              cfg.Kafka.ConsumerThreads,
 		GroupID:                cfg.Kafka.GroupID,
 		GroupTopics:            cfg.Kafka.Topics,

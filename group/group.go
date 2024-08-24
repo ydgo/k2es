@@ -52,7 +52,7 @@ func NewGroup(ctx context.Context, config Config) (*Group, error) {
 				StartOffset:            config.StartOffset,
 				ErrorLogger:            config.ErrorLogger,
 			}),
-			handler: config.Indexer.Handle,
+			handler: config.BlukIndexer.Handle,
 		})
 	}
 	group := &Group{
@@ -75,6 +75,7 @@ func NewGroup(ctx context.Context, config Config) (*Group, error) {
 
 type Config struct {
 	Indexer                *indexer.Mgmt
+	BlukIndexer            *indexer.Indexer
 	Consumers              int // Default: 1
 	GroupID                string
 	GroupTopics            []string
