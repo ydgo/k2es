@@ -9,9 +9,8 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/ydgo/k2es/collectors"
 	"github.com/ydgo/k2es/config"
-	"github.com/ydgo/k2es/handler"
-	consumer "github.com/ydgo/k2es/reader"
-	"github.com/ydgo/k2es/writer"
+	"github.com/ydgo/k2es/group"
+	"github.com/ydgo/k2es/indexer"
 	"log"
 	"net/http"
 	"os"
@@ -43,17 +42,17 @@ func main() {
 	}
 
 	// elasticsearch multi indexer management
-	indexerMgmt := writer.NewIndexerMgmt(ctx, writer.Config{
-		Client:            es,
-		Workers:           cfg.ES.Workers,
-		FlushInterval:     cfg.ES.FlushInterval,
-		Timeout:           cfg.ES.Timeout,
-		FlushBytes:        cfg.ES.FlushBytes,
-		Indices:           cfg.ES.Indices,
-		MaxIdleCount:      cfg.ES.MaxIdleCount,
-		SyncIndexInterval: cfg.ES.SyncIndexInterval,
+	mgmt := indexer.NewIndexerMgmt(ctx, indexer.Config{
+		Client:        es,
+		Workers:       cfg.ES.Workers,
+		FlushInterval: cfg.ES.FlushInterval,
+		Timeout:       cfg.ES.Timeout,
+		FlushBytes:    cfg.ES.FlushBytes,
+		MaxIdleCount:  cfg.ES.MaxIdleCount,
+		IdleInterval:  cfg.ES.IdleInterval,
 	})
-	groupConfig := consumer.GroupConfig{
+	groupConfig := group.Config{
+		Indexer:                mgmt,
 		Consumers:              cfg.Kafka.ConsumerThreads,
 		GroupID:                cfg.Kafka.GroupID,
 		GroupTopics:            cfg.Kafka.Topics,
@@ -67,33 +66,22 @@ func main() {
 		PartitionWatchInterval: cfg.Kafka.PartitionWatchInterval,
 		WatchPartitionChanges:  cfg.Kafka.WatchPartitionChanges,
 		StartOffset:            cfg.Kafka.StartOffset,
-		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
-			log.Printf(s, i...)
-		}),
-		Handler: handler.NewBatchWrite(indexerMgmt),
+		ErrorLogger:            kafka.LoggerFunc(func(s string, i ...interface{}) { log.Printf(s, i...) }),
 	}
-
-	if cfg.Kafka.EnableLogger {
-		groupConfig.ErrorLogger = kafka.LoggerFunc(func(s string, i ...interface{}) { log.Printf(s, i...) })
+	consumerGroup, err := group.NewGroup(ctx, groupConfig)
+	if err != nil {
+		log.Printf("create consumer group failed: %s", err)
+		return
 	}
-	if cfg.Kafka.EnableErrorLogger {
-		groupConfig.ErrorLogger = kafka.LoggerFunc(func(s string, i ...interface{}) { log.Printf(s, i...) })
-	}
-	consumerGroup := consumer.NewGroup(ctx, groupConfig)
 
 	// clean all resources
 	clean := func() {
 		consumerGroup.Stop()
-		indexerMgmt.Close()
+		mgmt.Close()
 	}
 
 	// register prometheus collector
 	reg := prometheus.NewRegistry()
-	//for _, client := range consumerGroup.Clients() {
-	//	exporter := collectors.NewConsumerCollector(consumerGroup, client)
-	//	reg.MustRegister(exporter)
-	//}
-
 	reg.MustRegister(collectors.NewCounter(consumerGroup))
 
 	go func() {
@@ -107,9 +95,9 @@ func main() {
 		for {
 			select {
 			case <-ticker.C:
-				for _, index := range indexerMgmt.Indices() {
+				for _, index := range mgmt.Indices() {
 					// todo indexerMgmt.Collector
-					exporter := collectors.NewWriterCollector(index, indexerMgmt)
+					exporter := collectors.NewWriterCollector(index, mgmt)
 					_ = reg.Register(exporter)
 				}
 			case <-ctx.Done():

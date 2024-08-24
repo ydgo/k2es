@@ -2,11 +2,11 @@ package collectors
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/ydgo/k2es/writer"
+	"github.com/ydgo/k2es/indexer"
 )
 
 type writerCollector struct {
-	mgmt     *writer.IndexerMgmt
+	mgmt     *indexer.Mgmt
 	index    string
 	added    *prometheus.Desc
 	flushed  *prometheus.Desc
@@ -15,7 +15,7 @@ type writerCollector struct {
 	requests *prometheus.Desc
 }
 
-func NewWriterCollector(index string, mgmt *writer.IndexerMgmt) prometheus.Collector {
+func NewWriterCollector(index string, mgmt *indexer.Mgmt) prometheus.Collector {
 	fqName := func(name string) string {
 		return "es_writer_" + name
 	}
@@ -48,7 +48,7 @@ func (c *writerCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c *writerCollector) Collect(ch chan<- prometheus.Metric) {
-	stats := c.mgmt.GetIndex(c.index).Stats()
+	stats := c.mgmt.Stats()
 	ch <- prometheus.MustNewConstMetric(c.added, prometheus.GaugeValue, float64(stats.NumAdded))
 	ch <- prometheus.MustNewConstMetric(c.flushed, prometheus.GaugeValue, float64(stats.NumFlushed))
 	ch <- prometheus.MustNewConstMetric(c.indexed, prometheus.GaugeValue, float64(stats.NumIndexed))

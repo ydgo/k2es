@@ -8,7 +8,7 @@ kafka:
   consumer_threads: 8
   # ------------ reader settings
   # 10MB
-  min_bytes: 5000000
+  min_bytes: 1
   # 50MB
   max_bytes: 6000000
   max_wait: 10s
@@ -21,14 +21,13 @@ kafka:
 
 es:
   hosts:
-    - http://localhost:9200
+    - http://127.0.0.1:9200
   workers: 16
   flush_interval: 10s
   timeout: 9s
-  # 10 MB
-  flush_bytes: 5000000
-  indices: ["dsm-*"]
-  max_idle_count: 5
-  sync_index_interval: 30s
+  # 5 MB
+  flush_bytes: 15000000
+  max_idle_count: 3
+  idle_interval: 5s
 
 

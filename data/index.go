@@ -1,14 +1,5 @@
 package data
 
-import (
-	"bytes"
-	"context"
-	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/elastic/go-elasticsearch/v7/esapi"
-	"log"
-	"net/http"
-)
-
 const (
 	TestIndex    = "k2es"
 	IndexMapping = `"mappings" : {
@@ -56,43 +47,3 @@ const (
   "_uuid": "673eccfd-8617-4af4-8d9b-ebaccf3eb9ab"
 }`
 )
-
-func CreateIndex(es *elasticsearch.Client) {
-	res, err := es.Indices.Exists([]string{TestIndex})
-	if err != nil {
-		log.Fatalln("Error checking if index exists1: ", err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode == http.StatusOK {
-		return
-	} else if res.StatusCode != http.StatusNotFound {
-		log.Fatalln("Error checking if index exists: ", res.Status())
-	}
-	res, err = es.Indices.Create(TestIndex, func(request *esapi.IndicesCreateRequest) {
-		request.Body = bytes.NewReader([]byte(IndexMapping))
-	})
-	//req := esapi.IndicesCreateRequest{
-	//	Index: TestIndex,
-	//	Body:  bytes.NewReader([]byte(IndexMapping)),
-	//}
-	//res, err = req.Do(context.Background(), es)
-	//if err != nil {
-	//	log.Fatalln("Error creating index: ", err)
-	//}
-	defer res.Body.Close()
-	if res.IsError() {
-		log.Fatalln("Error creating index: ", res.Status())
-	}
-	req1 := esapi.CreateRequest{
-		Index: TestIndex,
-		Body:  bytes.NewReader([]byte(TestMessage)),
-	}
-	res, err = req1.Do(context.Background(), es)
-	if err != nil {
-		log.Fatalln("Error creating document: ", err)
-	}
-	defer res.Body.Close()
-	if res.IsError() {
-		log.Fatalln("Error creating document: ", res.Status())
-	}
-}

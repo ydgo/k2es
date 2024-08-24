@@ -2,3 +2,4 @@
 data/elasticsearch-data
 data/kafka
 data/prometheus/data/
+k2es

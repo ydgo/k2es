@@ -1,54 +1,55 @@
 version: "3.7"
-services:
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
-    container_name: elasticsearch
-    restart: always
-    environment:
-      - xpack.security.enabled=false
-      - discovery.type=single-node
-#      - ES_JAVA_OPTS="-Xms 6G -Xmx 6G"
-      - ES_JAVA_OPTS=-Xms3g -Xmx3g
-    deploy:
-      resources:
-        limits:
-          cpus: "0.70"
-          memory: 4G
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    cap_add:
-      - IPC_LOCK
-    volumes:
-      - ./data/elasticsearch-data:/usr/share/elasticsearch/data
-    ports:
-      - 9200:9200
-  kibana:
-    container_name: kibana
-    image: docker.elastic.co/kibana/kibana:7.10.0
-    restart: always
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200    # address of elasticsearch docker container which kibana will connect
-    ports:
-      - 5601:5601
-    depends_on:
-      - elasticsearch                                   # kibana will start when elasticsearch has started
-  prometheus:
-    container_name: prometheus
-    image: prom/prometheus:latest
-    restart: always
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    ports:
-      - 9090:9090
-    volumes:
-      - ./data/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-
-
 volumes:
   prometheus_data: {}
+  es_data: {}
+
+services:
+  kafka:
+    container_name: broker
+    image: apache/kafka:3.8.0
+    ports:
+      - "9092:9092"
+#  prometheus:
+#    container_name: prometheus
+#    image: prom/prometheus:latest
+#    restart: always
+#    extra_hosts:
+#      - "host.docker.internal:host-gateway"
+#    ports:
+#      - "9090:9090"
+#    volumes:
+#      - ./data/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#      - prometheus_data:/prometheus
+#  kibana:
+#    container_name: kibana
+#    image: docker.elastic.co/kibana/kibana:7.10.0
+#    restart: always
+#    environment:
+#      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200    # address of elasticsearch docker container which kibana will connect
+#    ports:
+#      - "5601:5601"
+#    depends_on:
+#      - elasticsearch                                   # kibana will start when elasticsearch has started
+#  elasticsearch:
+#    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+#    container_name: elasticsearch
+#    restart: always
+#    environment:
+#      - xpack.security.enabled=false
+#      - discovery.type=single-node
+#      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+#    ulimits:
+#      memlock:
+#        soft: -1
+#        hard: -1
+#      nofile:
+#        soft: 65536
+#        hard: 65536
+#    cap_add:
+#      - IPC_LOCK
+#    volumes:
+#      - es_data:/usr/share/elasticsearch/data
+#    ports:
+#      - "9200:9200"
+
+
